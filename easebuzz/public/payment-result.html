@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Payment Result</title>
+</head>
+<body>
+  <h1>Payment status</h1>
+  <p id="status">Checking payment status...</p>
+
+  <script>
+    const statusElement = document.querySelector("#status");
+    const txnid = new URLSearchParams(location.search).get("txnid");
+
+    async function checkStatus() {
+      if (!txnid) {
+        statusElement.textContent = "Missing transaction ID.";
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          "/api/payments/status/" + encodeURIComponent(txnid)
+        );
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error("Unable to retrieve status.");
+        }
+
+        const status = result.payment.status;
+
+        if (status === "success") {
+          statusElement.textContent = "Payment successful.";
+        } else if (status === "failed") {
+          statusElement.textContent = "Payment failed.";
+        } else if (status === "verification_required") {
+          statusElement.textContent =
+            "Payment received. Verification is pending.";
+        } else {
+          statusElement.textContent =
+            "Payment is pending. Please check again shortly.";
+        }
+      } catch {
+        statusElement.textContent =
+          "Unable to check status. Please try again.";
+      }
+    }
+
+    checkStatus();
+  </script>
+</body>
+</html>

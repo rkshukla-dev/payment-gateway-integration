@@ -1,0 +1,93 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Easebuzz Demo Checkout</title>
+</head>
+<body>
+  <h1>Pay with Easebuzz</h1>
+
+  <form id="payment-form">
+    <label>
+      Name
+      <input name="firstname" value="Test Customer" required />
+    </label>
+    <br /><br />
+
+    <label>
+      Email
+      <input name="email" type="email" value="test@example.com" required />
+    </label>
+    <br /><br />
+
+    <label>
+      Phone
+      <input name="phone" value="9999999999" pattern="[0-9]{10}" required />
+    </label>
+    <br /><br />
+
+    <label>
+      Amount (INR)
+      <input name="amount" type="number" value="10.00"
+        min="1" max="1000000" step="0.01" required />
+    </label>
+    <br /><br />
+
+    <button type="submit">Proceed to payment</button>
+    <p id="message"></p>
+  </form>
+
+  <script>
+    const form = document.querySelector("#payment-form");
+    const message = document.querySelector("#message");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      message.textContent = "Creating payment...";
+
+      try {
+        const values = Object.fromEntries(new FormData(form));
+
+        const response = await fetch("/api/payments/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...values,
+            amount: Number(values.amount),
+            productinfo: "Demo order"
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "Unable to start checkout");
+        }
+
+        // Adapt this extraction to the exact response shape
+        // returned by your Easebuzz account/API version.
+        const checkout = result.access_key;
+        const accessKey =
+          typeof checkout === "string"
+            ? checkout
+            : checkout?.access_key;
+
+        if (!accessKey) {
+          throw new Error("No Easebuzz access key returned");
+        }
+
+        // This form posts to the hosted checkout. Use the
+        // correct sandbox/production checkout URL.
+        const checkoutUrl = "https://testpay.easebuzz.in/pay/" +
+          encodeURIComponent(accessKey);
+
+        window.location.assign(checkoutUrl);
+      } catch (error) {
+        message.textContent = error.message;
+      }
+    });
+  </script>
+</body>
+</html>
